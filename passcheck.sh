@@ -1,77 +1,119 @@
-# passcheck.sh draft
+#!/bin/bash
 
-# Completes a character count for user inputted password
-password_user_input_length=$("$password_checker_input" | wc -m)
-
-# generates password strength score, how should i score it
-#password_strength_score
-
-# Section declaring regex patterns to test against
+# Section declaring regex patterns for validating user-provided password
 illegal_characters="[\x00-\x1F\x7F\s\x80-\xFF]|[^\x00-\x7F]"
 repeating_characters="(.)\1{2,}"
 numerical_sequences="(012|123|234|345|456|567|678|789|890|098|987|876|765|654|543|432|321|210)"
 alphabetical_sequences="(abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz|zyx|yxw|xwv|wvu|vut|uts|tsr|srq|rqp|qpo|pon|onm|nml|mlk|lkj|kji|jih|ihg|hgf|gfe|fed|edc|dcb|cba)"
 keyboard_patterns="(qwerty|asdfgh|zxcvbn|ytrewq|hgfdsa|nbvcxz)"
-alternating_patterns="(qaz|wsx|edc|rfv|tgb|yhn|ujm|ik,|ol.|pl;|;'/|zaq|xsw|cde|vfr|bgt|nhy|mju|,ki|.lo|;lp|'/;|;'[)"
 
-# Section defining color codes to add visual interest to the generated report
+# Section declaring positive traits for password complexity
+uppercase_letters="([A-Z])"
+lowercase_letters="([a-z])"
+numbers="([0-9])"
+special_characters="([!@#$%^&*(),.?\":{}|<>])"
+
+# Section defining color codes to add visual interest to the generated password report
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[1;34m'
 NC='\033[0m'
 
-# The main prompt requesting user input in the form of a password
+# Section prompting user to provide a password for validation
 password_checker_prompt () {
-read -r -s -p "Please enter a new password for assessment:" password_checker_input
+    read -r -s -p "Please enter a new password for assessment: " password_checker_input
+    echo
 }
 
-if [[ -z "$password_checker_input" ]]; then
-    echo "No user input detected." && password_checker_prompt
-elif [[ "$password_checker_input" =~ [[:space:]] ]]; then
-    echo "Whitespace character(s) detected in user input." && password_checker_prompt
-else
+password_checker_input_length=$(echo "$password_checker_input" | wc -m )
 
-declare -A regex_patterns_validation=(
-    ["Password contains illegal characters:"]="$illegal_characters"
-    ["Password contains repeating characters:"]="$repeating_characters"
-    ["Password contains numerical sequences:"]="$numerical_sequences"
-    ["Password contains alphabetical sequences:"]="$alphabetical_sequences"
-    ["Password contains keyboard patterns:"]="$keyboard_patterns"
-    ["Password contains alternating patterns:"]="$alternating_patterns"
+# Declare regex patterns validation array for positive password traits
+declare -A positive_password_traits=(
+    ["Password contains uppercase letters:"]="$uppercase_letters"
+    ["Password contains lowercase letters:"]="$lowercase_letters"
+    ["Password contains numbers:"]="$numbers"
+    ["Password contains special characters:"]="$special_characters"
 )
 
+# Define compliance framework rules
+declare -A compliance_frameworks=(
+    ["HIPAA"]="8 uppercase_letters lowercase_letters numbers special_characters"
+    ["SOC 2"]="8 uppercase_letters lowercase_letters numbers special_characters"
+    ["SOX"]="8 uppercase_letters lowercase_letters numbers special_characters"
+    ["ISO 27001"]="8 uppercase_letters lowercase_letters numbers special_characters"
+    ["FedRAMP"]="12 uppercase_letters lowercase_letters numbers special_characters"
+    ["PCI DSS"]="7 uppercase_letters lowercase_letters numbers special_characters"
+)
 
-for check in "${!regex_patterns_validation[@]}"; do
-    if [[ $password_checker_input =~ ${regex_patterns_validation[$check]} ]]; then
-        echo -e "$check ${RED}YES${NC}"
+# Function to check compliance for each framework
+check_compliance() {
+    local framework=$1
+    local rules=(${2// / })
+    local min_length=${rules[0]}
+    local complexity_checks=("${rules[@]:1}")
+    local pass_length=${#password_checker_input}
+
+    # Check password length
+    if (( pass_length < min_length )); then
+        echo -e "$framework: ${RED}NO${NC}"
+        return
+    fi
+
+    # Check password complexity
+    for check in "${complexity_checks[@]}"; do
+        if ! [[ "$password_checker_input" =~ ${!check} ]]; then
+            echo -e "$framework: ${RED}NO${NC}"
+            return
+        fi
+    done
+
+    # If all checks pass echo the following:
+    echo -e "$framework: ${GREEN}YES${NC}"
+}
+
+# Ordered positive checks for display
+ordered_positive_checks=(
+    "Password contains uppercase letters:"
+    "Password contains lowercase letters:"
+    "Password contains numbers:"
+    "Password contains special characters:"
+)
+
+# Main script execution
+while true; do
+    # Initial password input prompt
+    password_checker_prompt
+
+    # Check if the password is empty or contains spaces
+    if [[ -z "$password_checker_input" ]]; then
+        echo -e "${YELLOW}No user input detected. Please try again.${NC}"
+    elif [[ "$password_checker_input" =~ [[:space:]] ]]; then
+        echo -e "${YELLOW}Whitespace character(s) detected in user input. Please try again.${NC}"
     else
-        echo -e "$check ${GREEN}NO${NC}"
+        echo ""
+        echo -e "${BLUE}Checking for user-provided password length:${NC}"
+        # Print the length of the user-provided password
+        echo ""
+        echo -e "The password you have provided is "$password_checker_input_length" character(s) long"
+        # Completing positive trait checks
+        echo -e "${BLUE}\nChecking positive traits required for a strong password:${NC}\n"
+        for check in "${ordered_positive_checks[@]}"; do
+            if [[ "$password_checker_input" =~ ${positive_password_traits[$check]} ]]; then
+                echo -e "$check ${GREEN}YES${NC}"
+            else
+                echo -e "$check ${RED}NO${NC}"
+            fi
+        done
+
+        # Completing compliance framework checks
+        echo -e "${BLUE}\nDisplaying compliance criteria met:${NC}\n"
+        for framework in "${!compliance_frameworks[@]}"; do
+            check_compliance "$framework" "${compliance_frameworks[$framework]}"
+        done
+        break
     fi
 done
 
-# format: character length, whether it matches for any of those, API pull and then reformatting information from that, then listing compliance-related information
-#i can use the haveibeenpwned API by pulling dicrtioanries, consider using a hashed version of the password when checking online
-#hex
-#ascending descending numerical
-#ascending descending alphabet
-#common keyboard patteerns
-#common number patterns
-#morekeyboard patterns
-#flag along with these (green or red check, then generate a report based on those results, how would i score it?
-#create a scoring scheme also dependent on top
-#make it read through or check results from text files like rockyou.txt or others?
-# need to create a loop function, read prompt, and echo command for input or instruct user to exit the program
-
-#ensure every single character pattern matches from approved regex ive made, then check
-
-#hex and escape characters that would be illegal in other systems, also repetition of the following characers: need to include all ([\x00-\x1F\x7F\s\x80-\xFF]|[^\x00-\x7F])|(.)\1{2,}|
-(012|123|234|345|456|567|678|789|890)|(098|987|876|765|654|543|432|321|210)|
-(abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)|
-(zyx|yxw|xwv|wvu|vut|uts|tsr|srq|rqp|qpo|pon|onm|nml|mlk|lkj|kji|jih|ihg|hgf|gfe|fed|edc|dcb|cba)|
-(qwerty|asdfgh|zxcvbn|ytrewq|hgfdsa|nbvcxz)|
-(123456|654321|7890|09876|56789)|
-(qaz|wsx|edc|rfv|tgb|yhn|ujm|ik,|ol.|pl;|;'/|zaq|xsw|cde|vfr|bgt|nhy|mju|,ki|.lo|;lp|'/;|;'[|)
-
-
-prints results based on certain compliance standards
-
-as well as any recommendations. Also links to more information for those specfiic standards. also flag if password is found in a file like rockyou.txt
+#additional work to be completed on below items
+# Based on haveibeenpwned's FREE "Pwned Passwords API", there is a high likelihood this password has been in a breach and should not be used in any environment.
