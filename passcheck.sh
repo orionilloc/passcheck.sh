@@ -26,8 +26,6 @@ password_checker_prompt () {
     echo
 }
 
-password_checker_input_length=$(echo "$password_checker_input" | wc -m )
-
 # Declare regex patterns validation array for positive password traits
 declare -A positive_password_traits=(
     ["Password contains uppercase letters:"]="$uppercase_letters"
@@ -85,6 +83,9 @@ while true; do
     # Initial password input prompt
     password_checker_prompt
 
+    # Calculate password length after input
+    password_checker_input_length=${#password_checker_input}
+
     # Check if the password is empty or contains spaces
     if [[ -z "$password_checker_input" ]]; then
         echo -e "${YELLOW}No user input detected. Please try again.${NC}"
@@ -95,7 +96,7 @@ while true; do
         echo -e "${BLUE}Checking for user-provided password length:${NC}"
         # Print the length of the user-provided password
         echo ""
-        echo -e "The password you have provided is "$password_checker_input_length" character(s) long"
+        echo -e "The password you have provided is ${password_checker_input_length} character(s) long"
         # Completing positive trait checks
         echo -e "${BLUE}\nChecking positive traits required for a strong password:${NC}\n"
         for check in "${ordered_positive_checks[@]}"; do
@@ -115,5 +116,17 @@ while true; do
     fi
 done
 
-#additional work to be completed on below items
-# Based on haveibeenpwned's FREE "Pwned Passwords API", there is a high likelihood this password has been in a breach and should not be used in any environment.
+# Subsection for checking haveibeenpwned's free passwords database
+hashed_password_checker_input=$(echo -n "$password_checker_input"  | openssl sha1 | awk '{print $2}')
+
+hash_prefix=$(echo "$hashed_password_checker_input" | awk '{print substr($0, 1, 5)}')
+
+haveibeenpwned_response=$(curl -s "https://api.pwnedpasswords.com/range/$hash_prefix")
+
+hash_suffix=$(echo "$hashed_password_checker_input" | awk '{print substr($0, 6)}')
+echo -e "${BLUE}\nChecking for the hashed password in any known data breaches:${NC}\n"
+if echo "$haveibeenpwned_response" | grep -i "$hash_suffix" > /dev/null; then
+    echo -e "${RED}This password has been found in a known data breach!${NC}"
+else
+    echo -e "${GREEN}This password has not been found in any known data breaches.${NC}"
+fi
