@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Section declaring regex patterns for validating user-provided password
 illegal_characters="[\x00-\x1F\x7F\s\x80-\xFF]|[^\x00-\x7F]"
@@ -20,11 +20,41 @@ YELLOW='\033[1;33m'
 BLUE='\033[1;34m'
 NC='\033[0m'
 
+# Section defining how to use this script and its limited functions
+usage() {
+    printf '%b\n' "Usage: ${0##*/} [OPTION]"
+    printf '%b\n' ""
+    printf '%b\n' "Options:"
+    printf '%b\n' "  --check       Assess a password against compliance frameworks and known breaches"
+    printf '%b\n' "  --generate    Generate a secure password"
+    printf '%b\n' "  --help        Display this help message"
+    printf '%b\n' ""
+    printf '%b\n' "Examples:"
+    printf '%b\n' "  ${0##*/} --check"
+    printf '%b\n' "  ${0##*/} --generate"
+    exit 0
+}
+
 # Section prompting user to provide a password for validation
 password_checker_prompt () {
-    read -r -s -p "Please enter a hypothetical password to assess: " password_checker_input
+    read -r -s -p "Please enter a hypothetical, non-production password to assess: " password_checker_input
     printf '%b\n'
 }
+
+# Section generating a random password using the Linux environment's builtin entropy pool
+password_generate () {
+    tr -dc 'A-Za-z0-9!"#$%&'\''()*+,-./:;<=>?@[\]^_{|}~`' < /dev/urandom | head -c 16
+    printf "%s\n"
+    exit 0
+}
+
+case "$1" in
+    --check) password_checker_prompt ;;
+    --generate) password_generate ;;
+    --help)     usage ;;
+    *)         usage ;;
+esac
+
 
 # Declare regex patterns validation array for positive password traits
 declare -A positive_password_traits=(
@@ -78,10 +108,7 @@ ordered_positive_checks=(
     "Password contains special characters:"
 )
 
-# Main script execution
-while true; do
-    # Initial password input prompt
-    password_checker_prompt
+# Main compliance check execution
 
     # Calculate password length after input
     password_checker_input_length=${#password_checker_input}
@@ -96,7 +123,7 @@ while true; do
         printf '%b\n' "${BLUE}Checking for user-provided password length:${NC}"
         # Print the length of the user-provided password
         printf '%b\n' ""
-        printf '%b\n' "The password you have provided is ${password_checker_input_length} character(s) long"
+        printf '%b\n' "The password you have provided is ${password_checker_input_length} character(s) long."
         # Completing positive trait checks
         printf '%b\n' "${BLUE}\nChecking positive traits required for a strong password:${NC}\n"
         for check in "${ordered_positive_checks[@]}"; do
@@ -112,18 +139,16 @@ while true; do
         for framework in "${!compliance_frameworks[@]}"; do
             check_compliance "$framework" "${compliance_frameworks[$framework]}"
         done
-        break
     fi
-done
 
 # Subsection for checking haveibeenpwned's free passwords database
-hashed_password_checker_input=$(printf '%b\n' "$password_checker_input"  | openssl sha1 | awk '{print $2}')
+hashed_password_checker_input=$(printf '%s' "$password_checker_input"  | openssl sha1 | awk '{print $2}')
 
-hash_prefix=$(printf '%b\n' "$hashed_password_checker_input" | awk '{print substr($0, 1, 5)}')
+hash_prefix=$(printf '%s' "$hashed_password_checker_input" | awk '{print substr($0, 1, 5)}')
 
 haveibeenpwned_response=$(curl -s "https://api.pwnedpasswords.com/range/$hash_prefix")
 
-hash_suffix=$(printf '%b\n' "$hashed_password_checker_input" | awk '{print substr($0, 6)}')
+hash_suffix=$(printf '%s' "$hashed_password_checker_input" | awk '{print substr($0, 6)}')
 
 printf '%b\n' "${BLUE}\nChecking for the hashed password in any known data breaches:${NC}\n"
 
