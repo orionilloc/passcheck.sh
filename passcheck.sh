@@ -22,7 +22,7 @@ NC='\033[0m'
 
 # Section prompting user to provide a password for validation
 password_checker_prompt () {
-    read -r -s -p "Please enter a new password for assessment: " password_checker_input
+    read -r -s -p "Please enter a hypothetical password to assess: " password_checker_input
     printf '%b\n'
 }
 
@@ -123,8 +123,10 @@ hash_prefix=$(printf '%b\n' "$hashed_password_checker_input" | awk '{print subst
 
 haveibeenpwned_response=$(curl -s "https://api.pwnedpasswords.com/range/$hash_prefix")
 
-hash_suffix=$(printf '\n' "$hashed_password_checker_input" | awk '{print substr($0, 6)}')
+hash_suffix=$(printf '%b\n' "$hashed_password_checker_input" | awk '{print substr($0, 6)}')
+
 printf '%b\n' "${BLUE}\nChecking for the hashed password in any known data breaches:${NC}\n"
+
 if printf '%b\n' "$haveibeenpwned_response" | grep -i "$hash_suffix" > /dev/null; then
     printf '%b\n' "${RED}This password has been found in a known data breach!${NC}"
 else
