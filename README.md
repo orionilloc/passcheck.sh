@@ -1,72 +1,79 @@
-## passcheck.sh
+# passcheck.sh
 
-This script is a comprehensive security tool designed to evaluate password strength, verify compliance against major regulatory frameworks, and check for known data breaches. It provides a color-coded report to help users or administrators identify weak credentials before they are deployed.
-
----
-
-### Features
-
-* **Complexity Analysis:** Validates passwords for essential traits:
-    * Uppercase and Lowercase letters.
-    * Numerical characters.
-    * Special characters/symbols.
-* **Regulatory Compliance Mapping:** Checks the password against specific length and complexity requirements for:
-    * **HIPAA / SOC 2 / SOX / ISO 27001:** Standard high-security baselines.
-    * **FedRAMP:** Stringent 12-character minimum requirement.
-    * **PCI DSS:** Financial industry standard (7-character minimum).
-* **Leak Detection (Have I Been Pwned):** Uses k-Anonymity to securely check the password's SHA-1 hash against the *Have I Been Pwned* API. This identifies if the password has appeared in historical data breaches without ever sending the actual password to the server.
-* **Pattern Identification:** Includes pre-defined regex patterns to catch weak sequences like `123`, `abc`, or keyboard rows like `qwerty`.
-* **Input Sanitization:** Automatically detects and rejects empty inputs or passwords containing whitespace.
+A personal security utility for generating and evaluating passwords. Provides compliance reporting against major regulatory frameworks and breach detection via the Have I Been Pwned API.
 
 ---
 
-### Prerequisites
+## Features
 
-* **Environment:** Linux/Unix with `bash`.
-* **Tools:** * `openssl`: To generate SHA-1 hashes for breach checking.
-    * `curl`: To communicate with the *Have I Been Pwned* API.
-    * `awk`: For string manipulation and formatting.
-
----
-
-### Usage
-
-1.  **Grant Execution Permissions:**
-    ```bash
-    chmod +x password_audit.sh
-    ```
-
-2.  **Run the script:**
-    ```bash
-    ./password_audit.sh
-    ```
-
-3.  **Follow the prompt:** Enter the password when requested. The input is masked (hidden) for security.
+- **Password Generation:** Generates a cryptographically random password using `/dev/urandom` via the `tr` utility. Defaults to 16 characters.
+- **Complexity Analysis:** Validates passwords for essential traits:
+  - Uppercase and lowercase letters
+  - Numerical characters
+  - Special characters/symbols
+- **Regulatory Compliance Mapping:** Checks length and complexity requirements for:
+  - **HIPAA / SOC 2 / SOX / ISO 27001:** 8-character minimum, all complexity classes required
+  - **FedRAMP:** 12-character minimum, all complexity classes required
+  - **PCI DSS v4.0:** 12-character minimum, all complexity classes required
+  - **NIST SP 800-63B:** 8-character minimum, no mandatory complexity requirements
+- **Breach Detection:** Uses k-Anonymity to check the password's SHA-1 hash against the Have I Been Pwned API without ever transmitting the actual password.
+- **Input Sanitization:** Rejects empty inputs and passwords containing whitespace.
 
 ---
 
-### How the Breach Check Works (k-Anonymity)
+## Prerequisites
 
-To maintain privacy, the script utilizes a "range-based" query, ensuring your actual password never leaves your machine:
-
-1.  **Local Hashing:** It hashes your password locally using **SHA-1**.
-2.  **Prefixing:** It sends only the **first 5 characters** of that hash to the API.
-3.  **Range Retrieval:** The API returns a list of all leaked hash suffixes that start with those same 5 characters.
-4.  **Local Match:** The script checks the returned list locally for your specific suffix.
-
-
+- **Environment:** Linux/Unix with `bash`
+- **Tools:**
+  - `openssl` — SHA-1 hashing for breach detection
+  - `curl` — Have I Been Pwned API communication
+  - `awk` — string manipulation
 
 ---
 
-### Compliance Summary Table
+## Usage
 
-| Framework | Min Length | Required Complexity |
+```bash
+chmod +x passcheck.sh
+```
+
+```
+./passcheck.sh [OPTION]
+
+Options:
+  --check              Assess a password against compliance frameworks and known breaches
+  --generate [N]       Generate a secure password of N characters (default: 16)
+  --help               Display help message
+
+Examples:
+  ./passcheck.sh --check
+  ./passcheck.sh --generate
+  ./passcheck.sh --generate 20
+```
+
+---
+
+## How Breach Detection Works (k-Anonymity)
+
+1. **Local hashing:** The password is hashed locally using SHA-1
+2. **Prefixing:** Only the first 5 characters of the hash are sent to the API
+3. **Range retrieval:** The API returns all leaked hash suffixes matching that prefix
+4. **Local match:** The script checks the returned list locally for your specific suffix
+
+Your actual password never leaves your machine.
+
+---
+
+## Compliance Summary
+
+| Framework | Min Length | Complexity Required |
 | :--- | :--- | :--- |
-| **FedRAMP** | 12 | Upper, Lower, Number, Special |
-| **HIPAA / SOC 2** | 8 | Upper, Lower, Number, Special |
-| **PCI DSS** | 7 | Upper, Lower, Number, Special |
+| NIST SP 800-63B | 8 | None |
+| HIPAA / SOC 2 / SOX / ISO 27001 | 8 | Upper, lower, number, special |
+| FedRAMP | 12 | Upper, lower, number, special |
+| PCI DSS v4.0 | 12 | Upper, lower, number, special |
 
 ---
 
 > [!IMPORTANT]
-> This tool is intended for security auditing and educational purposes. While it checks for "known" breaches, a "YES" result from the breach checker does not guarantee a password is unhackable; it simply means it hasn't been found in a public leak yet.
+> Intended for personal use and educational purposes only. Do not assess production credentials. A negative breach result means the password was not found in known public leaks, but it does not guarantee the password is necessarily secure.
