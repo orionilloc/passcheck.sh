@@ -36,25 +36,18 @@ usage() {
 }
 
 # Section prompting user to provide a password for validation
-password_checker_prompt () {
+password_checker_prompt() {
     read -r -s -p "Please enter a hypothetical, non-production password to assess: " password_checker_input
     printf '%b\n'
 }
 
-# Section generating a random password using the Linux environment's builtin entropy pool
-password_generate () {
-    tr -dc 'A-Za-z0-9!"#$%&'\''()*+,-./:;<=>?@[\]^_{|}~`' < /dev/urandom | head -c 16
-    printf "%s\n"
-    exit 0
+# Section generating a random password using the Linux environment's builtin entropy pool; defaults to 16 characters for relative security
+password_generate() {
+    local generated_password_length="${2:-16}"
+    password_checker_input=$(tr -dc 'A-Za-z0-9!"#$%&'\''()*+,-./:;<=>?@[\]^_{|}~`' < /dev/urandom | head -c "$generated_password_length")
+    printf '%s\n' "$password_checker_input"
+    assess_password_compliance_and_breaches
 }
-
-case "$1" in
-    --check) password_checker_prompt ;;
-    --generate) password_generate ;;
-    --help)     usage ;;
-    *)         usage ;;
-esac
-
 
 # Declare regex patterns validation array for positive password traits
 declare -A positive_password_traits=(
@@ -71,7 +64,8 @@ declare -A compliance_frameworks=(
     ["SOX"]="8 uppercase_letters lowercase_letters numbers special_characters"
     ["ISO 27001"]="8 uppercase_letters lowercase_letters numbers special_characters"
     ["FedRAMP"]="12 uppercase_letters lowercase_letters numbers special_characters"
-    ["PCI DSS"]="7 uppercase_letters lowercase_letters numbers special_characters"
+    ["PCI DSS"]="12 uppercase_letters lowercase_letters numbers special_characters"
+    ["NIST SP 800-63B"]="8 none"
 )
 
 # Function to check compliance for each framework
@@ -82,25 +76,23 @@ check_compliance() {
     local complexity_checks=("${rules[@]:1}")
     local pass_length=${#password_checker_input}
 
-    # Check password length
     if (( pass_length < min_length )); then
         printf '%b\n' "$framework: ${RED}NO${NC}"
         return
     fi
 
-    # Check password complexity
     for check in "${complexity_checks[@]}"; do
+        [[ "$check" == "none" ]] && continue
         if ! [[ "$password_checker_input" =~ ${!check} ]]; then
             printf '%b\n' "$framework: ${RED}NO${NC}"
             return
         fi
     done
 
-    # If all checks pass print the following:
     printf '%b\n' "$framework: ${GREEN}YES${NC}"
 }
 
-# Ordered positive checks for display
+# Ordered positive checks for displaying
 ordered_positive_checks=(
     "Password contains uppercase letters:"
     "Password contains lowercase letters:"
@@ -108,53 +100,51 @@ ordered_positive_checks=(
     "Password contains special characters:"
 )
 
-# Main compliance check execution
+# Main function for password assessment against compliance frameworks and breach database
+assess_password_compliance_and_breaches() {
+        password_checker_input_length=${#password_checker_input}
 
-    # Calculate password length after input
-    password_checker_input_length=${#password_checker_input}
+        if [[ -z "$password_checker_input" ]]; then
+            printf '%b\n' "${YELLOW}No user input detected. Please try again.${NC}"
+        elif [[ "$password_checker_input" =~ [[:space:]] ]]; then
+            printf '%b\n' "${YELLOW}Whitespace character(s) detected in user input. Please try again.${NC}"
+        else
+            printf '%b\n' ""
+            printf '%b\n' "${BLUE}Checking for user-provided password length:${NC}"
+            printf '%b\n' ""
+            printf '%b\n' "The password you have provided is ${password_checker_input_length} character(s) long."
+            printf '%b\n' "${BLUE}\nChecking positive traits required for a strong password:${NC}\n"
+            for check in "${ordered_positive_checks[@]}"; do
+                if [[ "$password_checker_input" =~ ${positive_password_traits[$check]} ]]; then
+                    printf '%b\n' "$check ${GREEN}YES${NC}"
+                else
+                    printf '%b\n' "$check ${RED}NO${NC}"
+                fi
+            done
 
-    # Check if the password is empty or contains spaces
-    if [[ -z "$password_checker_input" ]]; then
-        printf '%b\n' "${YELLOW}No user input detected. Please try again.${NC}"
-    elif [[ "$password_checker_input" =~ [[:space:]] ]]; then
-        printf '%b\n' "${YELLOW}Whitespace character(s) detected in user input. Please try again.${NC}"
-    else
-        printf '%b\n' ""
-        printf '%b\n' "${BLUE}Checking for user-provided password length:${NC}"
-        # Print the length of the user-provided password
-        printf '%b\n' ""
-        printf '%b\n' "The password you have provided is ${password_checker_input_length} character(s) long."
-        # Completing positive trait checks
-        printf '%b\n' "${BLUE}\nChecking positive traits required for a strong password:${NC}\n"
-        for check in "${ordered_positive_checks[@]}"; do
-            if [[ "$password_checker_input" =~ ${positive_password_traits[$check]} ]]; then
-                printf '%b\n' "$check ${GREEN}YES${NC}"
+            printf '%b\n' "${BLUE}\nDisplaying compliance criteria met:${NC}\n"
+            for framework in "${!compliance_frameworks[@]}"; do
+                check_compliance "$framework" "${compliance_frameworks[$framework]}"
+            done
+
+            # Subsection for checking haveibeenpwned's free passwords database
+            hashed_password_checker_input=$(printf '%s' "$password_checker_input" | openssl sha1 | awk '{print $2}')
+            hash_prefix=$(printf '%s' "$hashed_password_checker_input" | awk '{print substr($0, 1, 5)}')
+            haveibeenpwned_response=$(curl -s "https://api.pwnedpasswords.com/range/${hash_prefix}")
+            hash_suffix=$(printf '%s' "$hashed_password_checker_input" | awk '{print substr($0, 6)}')
+
+            printf '%b\n' "${BLUE}\nChecking for the hashed password in any known data breaches:${NC}\n"
+            if printf '%s' "$haveibeenpwned_response" | grep -i "$hash_suffix" > /dev/null; then
+                printf '%b\n' "${RED}This password has been found in a known data breach!${NC}"
             else
-                printf '%b\n' "$check ${RED}NO${NC}"
+                printf '%b\n' "${GREEN}This password has not been found in any known data breaches.${NC}"
             fi
-        done
+        fi
+}
 
-        # Completing compliance framework checks
-        printf '%b\n' "${BLUE}\nDisplaying compliance criteria met:${NC}\n"
-        for framework in "${!compliance_frameworks[@]}"; do
-            check_compliance "$framework" "${compliance_frameworks[$framework]}"
-        done
-    fi
-
-# Subsection for checking haveibeenpwned's free passwords database
-hashed_password_checker_input=$(printf '%s' "$password_checker_input"  | openssl sha1 | awk '{print $2}')
-
-hash_prefix=$(printf '%s' "$hashed_password_checker_input" | awk '{print substr($0, 1, 5)}')
-
-haveibeenpwned_response=$(curl -s "https://api.pwnedpasswords.com/range/$hash_prefix")
-
-hash_suffix=$(printf '%s' "$hashed_password_checker_input" | awk '{print substr($0, 6)}')
-
-printf '%b\n' "${BLUE}\nChecking for the hashed password in any known data breaches:${NC}\n"
-
-if printf '%b\n' "$haveibeenpwned_response" | grep -i "$hash_suffix" > /dev/null; then
-    printf '%b\n' "${RED}This password has been found in a known data breach!${NC}"
-else
-    printf '%b\n' "${GREEN}This password has not been found in any known data breaches.${NC}"
-fi
-
+case "$1" in
+    --check)    password_checker_prompt && assess_password_compliance_and_breaches ;;
+    --generate) password_generate "$@";;
+    --help)     usage ;;
+    *)          usage ;;
+esac
