@@ -23,7 +23,7 @@ NC='\033[0m'
 # Section prompting user to provide a password for validation
 password_checker_prompt () {
     read -r -s -p "Please enter a new password for assessment: " password_checker_input
-    echo
+    printf '%b\n'
 }
 
 # Declare regex patterns validation array for positive password traits
@@ -54,20 +54,20 @@ check_compliance() {
 
     # Check password length
     if (( pass_length < min_length )); then
-        echo -e "$framework: ${RED}NO${NC}"
+        printf '%b\n' "$framework: ${RED}NO${NC}"
         return
     fi
 
     # Check password complexity
     for check in "${complexity_checks[@]}"; do
         if ! [[ "$password_checker_input" =~ ${!check} ]]; then
-            echo -e "$framework: ${RED}NO${NC}"
+            printf '%b\n' "$framework: ${RED}NO${NC}"
             return
         fi
     done
 
-    # If all checks pass echo the following:
-    echo -e "$framework: ${GREEN}YES${NC}"
+    # If all checks pass print the following:
+    printf '%b\n' "$framework: ${GREEN}YES${NC}"
 }
 
 # Ordered positive checks for display
@@ -88,27 +88,27 @@ while true; do
 
     # Check if the password is empty or contains spaces
     if [[ -z "$password_checker_input" ]]; then
-        echo -e "${YELLOW}No user input detected. Please try again.${NC}"
+        printf '%b\n' "${YELLOW}No user input detected. Please try again.${NC}"
     elif [[ "$password_checker_input" =~ [[:space:]] ]]; then
-        echo -e "${YELLOW}Whitespace character(s) detected in user input. Please try again.${NC}"
+        printf '%b\n' "${YELLOW}Whitespace character(s) detected in user input. Please try again.${NC}"
     else
-        echo ""
-        echo -e "${BLUE}Checking for user-provided password length:${NC}"
+        printf '%b\n' ""
+        printf '%b\n' "${BLUE}Checking for user-provided password length:${NC}"
         # Print the length of the user-provided password
-        echo ""
-        echo -e "The password you have provided is ${password_checker_input_length} character(s) long"
+        printf '%b\n' ""
+        printf '%b\n' "The password you have provided is ${password_checker_input_length} character(s) long"
         # Completing positive trait checks
-        echo -e "${BLUE}\nChecking positive traits required for a strong password:${NC}\n"
+        printf '%b\n' "${BLUE}\nChecking positive traits required for a strong password:${NC}\n"
         for check in "${ordered_positive_checks[@]}"; do
             if [[ "$password_checker_input" =~ ${positive_password_traits[$check]} ]]; then
-                echo -e "$check ${GREEN}YES${NC}"
+                printf '%b\n' "$check ${GREEN}YES${NC}"
             else
-                echo -e "$check ${RED}NO${NC}"
+                printf '%b\n' "$check ${RED}NO${NC}"
             fi
         done
 
         # Completing compliance framework checks
-        echo -e "${BLUE}\nDisplaying compliance criteria met:${NC}\n"
+        printf '%b\n' "${BLUE}\nDisplaying compliance criteria met:${NC}\n"
         for framework in "${!compliance_frameworks[@]}"; do
             check_compliance "$framework" "${compliance_frameworks[$framework]}"
         done
@@ -117,16 +117,17 @@ while true; do
 done
 
 # Subsection for checking haveibeenpwned's free passwords database
-hashed_password_checker_input=$(echo -n "$password_checker_input"  | openssl sha1 | awk '{print $2}')
+hashed_password_checker_input=$(printf '%b\n' "$password_checker_input"  | openssl sha1 | awk '{print $2}')
 
-hash_prefix=$(echo "$hashed_password_checker_input" | awk '{print substr($0, 1, 5)}')
+hash_prefix=$(printf '%b\n' "$hashed_password_checker_input" | awk '{print substr($0, 1, 5)}')
 
 haveibeenpwned_response=$(curl -s "https://api.pwnedpasswords.com/range/$hash_prefix")
 
-hash_suffix=$(echo "$hashed_password_checker_input" | awk '{print substr($0, 6)}')
-echo -e "${BLUE}\nChecking for the hashed password in any known data breaches:${NC}\n"
-if echo "$haveibeenpwned_response" | grep -i "$hash_suffix" > /dev/null; then
-    echo -e "${RED}This password has been found in a known data breach!${NC}"
+hash_suffix=$(printf '\n' "$hashed_password_checker_input" | awk '{print substr($0, 6)}')
+printf '%b\n' "${BLUE}\nChecking for the hashed password in any known data breaches:${NC}\n"
+if printf '%b\n' "$haveibeenpwned_response" | grep -i "$hash_suffix" > /dev/null; then
+    printf '%b\n' "${RED}This password has been found in a known data breach!${NC}"
 else
-    echo -e "${GREEN}This password has not been found in any known data breaches.${NC}"
+    printf '%b\n' "${GREEN}This password has not been found in any known data breaches.${NC}"
 fi
+
