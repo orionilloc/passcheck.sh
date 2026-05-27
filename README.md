@@ -6,7 +6,7 @@ A personal security utility for generating and evaluating passwords. Provides co
 
 ## Features
 
-- **Password Generation:** Generates a cryptographically random password using `/dev/urandom` via the `tr` utility. Defaults to 16 characters.
+- **Password Generation:** Generates a cryptographically random password using `/dev/urandom` via the `tr` utility. Pre-selects one character from each required class (uppercase, lowercase, number, special) before filling the remainder, then shuffles the result — guaranteeing class coverage on every generation. Defaults to 16 characters.
 - **Complexity Analysis:** Validates passwords for essential traits:
   - Uppercase and lowercase letters
   - Numerical characters
@@ -18,6 +18,7 @@ A personal security utility for generating and evaluating passwords. Provides co
   - **NIST SP 800-63B:** 8-character minimum, no mandatory complexity requirements
 - **Breach Detection:** Uses k-Anonymity to check the password's SHA-1 hash against the Have I Been Pwned API without ever transmitting the actual password.
 - **Input Sanitization:** Rejects empty inputs and passwords containing whitespace.
+- **Columnar Output:** Color-coded, aligned report output for readability.
 
 ---
 
@@ -27,23 +28,28 @@ A personal security utility for generating and evaluating passwords. Provides co
 - **Tools:**
   - `openssl` — SHA-1 hashing for breach detection
   - `curl` — Have I Been Pwned API communication
-  - `awk` — string manipulation
+  - `cut` — hash prefix/suffix extraction
+  - `shuf` — password shuffle after generation
 
 ---
 
 ## Usage
 
+Grant execution permissions:
+
 ```bash
 chmod +x passcheck.sh
 ```
+
+Run the script:
 
 ```
 ./passcheck.sh [OPTION]
 
 Options:
-  --check              Assess a password against compliance frameworks and known breaches
-  --generate [N]       Generate a secure password of N characters (default: 16)
-  --help               Display help message
+  --check         Assess a password against compliance frameworks and known breaches
+  --generate [N]  Generate a secure password of N characters (default: 16)
+  --help          Display help message
 
 Examples:
   ./passcheck.sh --check
@@ -76,4 +82,4 @@ Your actual password never leaves your machine.
 ---
 
 > [!IMPORTANT]
-> Intended for personal use and educational purposes only. Do not assess production credentials. A negative breach result means the password was not found in known public leaks, but it does not guarantee the password is necessarily secure.
+> Intended for personal use and educational purposes only. Do not assess production credentials. A negative breach result means the password was not found in known public leaks — it does not guarantee the password is secure.
