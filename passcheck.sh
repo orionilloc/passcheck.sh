@@ -42,8 +42,20 @@ password_checker_prompt() {
 
 # Section generating a random password using the Linux environment's builtin entropy pool; defaults to 16 characters for relative security
 password_generate() {
-    local generated_password_length="${2:-16}"
-    password_checker_input=$(tr -dc 'A-Za-z0-9!"#$%&'\''()*+,-./:;<=>?@[\]^_{|}~`' < /dev/urandom | head -c "$generated_password_length")
+    local length="${2:-16}"
+    local special_charset='!"#$%&'"'"'()*+,-./:;<=>?@[\]^_{|}~`'
+    local full_charset="A-Za-z0-9${special_charset}"
+
+    local upper lower digit special remainder
+    upper=$(tr -dc 'A-Z' < /dev/urandom | head -c 1)
+    lower=$(tr -dc 'a-z' < /dev/urandom | head -c 1)
+    digit=$(tr -dc '0-9' < /dev/urandom | head -c 1)
+    special=$(tr -dc "$special_charset" < /dev/urandom | head -c 1)
+    remainder=$(tr -dc "$full_charset" < /dev/urandom | head -c $(( length - 4 )))
+
+    password_checker_input=$(printf '%s' "${upper}${lower}${digit}${special}${remainder}" \
+        | fold -w1 | shuf | tr -d '\n')
+
     printf '%s\n' "$password_checker_input"
     assess_password_compliance_and_breaches
 }
