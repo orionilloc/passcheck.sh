@@ -35,6 +35,12 @@ usage() {
     exit 0
 }
 
+# Section to define columnar output
+print_row() {
+    printf '    %-32s' "$1"
+    printf '%b\n' "${2}${3}${NC}"
+}
+
 # Section prompting user to provide a password for validation
 password_checker_prompt() {
     read -r -s -p "Please enter a hypothetical, non-production password to assess: " password_checker_input
@@ -77,19 +83,19 @@ check_compliance() {
     local pass_length=${#password_checker_input}
 
     if (( pass_length < min_length )); then
-        printf '%b\n' "$framework: ${RED}NO${NC}"
+        print_row "$framework" "$RED" "NO"
         return
     fi
 
     for check in "${complexity_checks[@]}"; do
         [[ "$check" == "none" ]] && continue
         if ! [[ "$password_checker_input" =~ ${!check} ]]; then
-            printf '%b\n' "$framework: ${RED}NO${NC}"
+            print_row "$framework" "$RED" "NO"
             return
         fi
     done
 
-    printf '%b\n' "$framework: ${GREEN}YES${NC}"
+        print_row "$framework" "$GREEN" "YES"
 }
 
 # Ordered positive checks for displaying
@@ -116,9 +122,9 @@ assess_password_compliance_and_breaches() {
             printf '%b\n' "${BLUE}\nChecking positive traits required for a strong password:${NC}\n"
             for check in "${ordered_positive_checks[@]}"; do
                 if [[ "$password_checker_input" =~ ${positive_password_traits[$check]} ]]; then
-                    printf '%b\n' "$check ${GREEN}YES${NC}"
+                    print_row "$check" "$GREEN" "YES"
                 else
-                    printf '%b\n' "$check ${RED}NO${NC}"
+                    print_row "$check" "$RED" "NO"
                 fi
             done
 
