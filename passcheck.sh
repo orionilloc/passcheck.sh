@@ -148,11 +148,15 @@ assess_password_compliance_and_breaches() {
             # Subsection for checking haveibeenpwned's free passwords database
             hashed_password_checker_input=$(printf '%s' "$password_checker_input" | openssl sha1 | awk '{print $2}')
             hash_prefix=$(printf '%s' "$hashed_password_checker_input" | awk '{print substr($0, 1, 5)}')
-            haveibeenpwned_response=$(curl -s "https://api.pwnedpasswords.com/range/${hash_prefix}")
+            haveibeenpwned_response=$(curl -s --max-time 5 "https://api.pwnedpasswords.com/range/${hash_prefix}")
             hash_suffix=$(printf '%s' "$hashed_password_checker_input" | awk '{print substr($0, 6)}')
 
+
             printf '%b\n' "${BLUE}\nChecking for known data breaches:${NC}\n"
-            if printf '%s' "$haveibeenpwned_response" | grep -i "$hash_suffix" > /dev/null; then
+            if [[ -z $haveibeenpwned_response ]]; then
+                printf '%b\n' "${YELLOW}Breach check unavailable. Check for network error or timeout.${NC}"
+                printf '%b\n' ""
+            elif printf '%s' "$haveibeenpwned_response" | grep -i "$hash_suffix" > /dev/null; then
                 printf '%b\n' "${RED}This password has been found in a known data breach!${NC}"
                 printf '%b\n' ""
             else
