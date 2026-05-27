@@ -146,11 +146,10 @@ assess_password_compliance_and_breaches() {
             done
 
             # Subsection for checking haveibeenpwned's free passwords database
-            hashed_password_checker_input=$(printf '%s' "$password_checker_input" | openssl sha1 | awk '{print $2}')
+            hashed_password_checker_input=$(printf '%s' "$password_checker_input" | openssl sha1 | awk '{print $NF}')
             hash_prefix=$(printf '%s' "$hashed_password_checker_input" | awk '{print substr($0, 1, 5)}')
             haveibeenpwned_response=$(curl -s --max-time 5 "https://api.pwnedpasswords.com/range/${hash_prefix}")
             hash_suffix=$(printf '%s' "$hashed_password_checker_input" | awk '{print substr($0, 6)}')
-
 
             printf '%b\n' "${BLUE}\nChecking for known data breaches:${NC}\n"
             if [[ -z $haveibeenpwned_response ]]; then
