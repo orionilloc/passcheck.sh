@@ -29,7 +29,7 @@ usage() {
     exit 0
 }
 
-# Section to define columnar output
+# Section defining columnar output
 print_row() {
     printf '    %-32s' "$1"
     printf '%b\n' "${2}${3}${NC}"
@@ -117,7 +117,7 @@ ordered_positive_checks=(
     "Has special characters:"
 )
 
-# Main function for password assessment against compliance frameworks and breach database
+# Main function for password assessment against compliance frameworks
 assess_password_compliance_and_breaches() {
         password_checker_input_length=${#password_checker_input}
 
@@ -145,7 +145,7 @@ assess_password_compliance_and_breaches() {
                 check_compliance "$framework" "${compliance_frameworks[$framework]}"
             done
 
-            # Subsection for checking haveibeenpwned's free passwords database
+            # Subsection for checking haveibeenpwned's free pwned passwords database
             hashed_password_checker_input=$(printf '%s' "$password_checker_input" | openssl sha1 | awk '{print $NF}')
             hash_prefix=$(printf '%s' "$hashed_password_checker_input" | awk '{print substr($0, 1, 5)}')
             haveibeenpwned_response=$(curl -s --max-time 5 "https://api.pwnedpasswords.com/range/${hash_prefix}")
