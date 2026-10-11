@@ -4,7 +4,7 @@
 uppercase_letters="([A-Z])"
 lowercase_letters="([a-z])"
 numbers="([0-9])"
-special_characters="([!@#$%^&*(),.?\":{}|<>])"
+special_characters="([[^:alnum:]])"
 
 # Section defining color codes to add visual interest to the generated password report
 RED='\033[0;31m'
