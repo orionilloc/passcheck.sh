@@ -48,6 +48,14 @@ password_generate() {
     local full_charset="A-Za-z0-9${special_charset}"
     local upper lower digit special remainder
 
+    if ! [[ "$length" =~ ^[0-9]+$ ]]; then
+        printf '%b\n' "${YELLOW}Length must be a whole number.${NC}"
+        exit 1
+    fi
+
+    length=$((10#$length))
+
+
     if (( length < 4 )); then
         printf '%b\n' "${YELLOW}Length must be at least 4 characters.${NC}"
         exit 1
