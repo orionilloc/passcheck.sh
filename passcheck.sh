@@ -76,14 +76,11 @@ declare -A positive_password_traits=(
 
 # Define compliance framework rules
 declare -A compliance_frameworks=(
-    ["HIPAA"]="8 uppercase_letters lowercase_letters numbers special_characters"
-    ["SOC 2"]="8 uppercase_letters lowercase_letters numbers special_characters"
-    ["SOX"]="8 uppercase_letters lowercase_letters numbers special_characters"
-    ["ISO 27001"]="8 uppercase_letters lowercase_letters numbers special_characters"
-    ["FedRAMP"]="12 uppercase_letters lowercase_letters numbers special_characters"
-    ["PCI DSS"]="12 uppercase_letters lowercase_letters numbers special_characters"
-    ["NIST SP 800-63B"]="8 none"
+    ["NIST 800-63B-4 (password-only)"]="15 none"
+    ["NIST 800-63B-4 (as MFA factor)"]="8 none"
+    ["PCI DSS 4.0.1 req 8.3.6"]="12 letters numbers"
 )
+
 
 # Function to check compliance for each framework
 check_compliance() {
