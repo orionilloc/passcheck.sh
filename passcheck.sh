@@ -4,7 +4,7 @@
 uppercase_letters="([A-Z])"
 lowercase_letters="([a-z])"
 numbers="([0-9])"
-special_characters="([[^:alnum:]])"
+special_characters="([^[:alnum:]])"
 
 # Section defining color codes to add visual interest to the generated password report
 RED='\033[0;31m'
@@ -44,7 +44,7 @@ password_checker_prompt() {
 # Section generating a random password using the Linux environment's builtin entropy pool; defaults to 16 characters for relative security
 password_generate() {
     local length="${2:-16}"
-    local special_charset='!"#$%&'"'"'()*+,-./:;<=>?@[\]^_{|}~`'
+    local special_charset='!"#$%&'"'"'()*+,-./:;<=>?@[\]^_{|}~`\\'
     local full_charset="A-Za-z0-9${special_charset}"
     local upper lower digit special remainder
 
