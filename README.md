@@ -12,11 +12,10 @@ A personal security utility for generating and evaluating passwords. Provides co
   - Numerical characters
   - Special characters/symbols
 - **Regulatory Compliance Mapping:** Checks length and complexity requirements for:
-  - **HIPAA / SOC 2 / SOX / ISO 27001:** 8-character minimum, all complexity classes required
-  - **FedRAMP:** 12-character minimum, all complexity classes required
-  - **PCI DSS v4.0:** 12-character minimum, all complexity classes required
-  - **NIST SP 800-63B:** 8-character minimum, no mandatory complexity requirements
-- **Breach Detection:** Uses k-Anonymity to check the password's SHA-1 hash against the Have I Been Pwned API without ever transmitting the actual password.
+  - **NIST SP 800-63B-4 (password-only):** 15-character minimum, no mandatory complexity requirements
+  - **NIST SP 800-63B-4 (as MFA factor):** 8-character minimum, no mandatory complexity requirements
+  - **PCI DSS v4.0:** 12-character minimum, letters and numbers
+-  **Breach Detection:** Uses k-Anonymity to check the password's SHA-1 hash against the Have I Been Pwned API without ever transmitting the actual password.
 - **Input Sanitization:** Rejects empty inputs and passwords containing whitespace.
 - **Columnar Output:** Color-coded, aligned report output for readability.
 
@@ -67,17 +66,6 @@ Examples:
 4. **Local match:** The script checks the returned list locally for your specific suffix
 
 Your actual password never leaves your machine.
-
----
-
-## Compliance Summary
-
-| Framework | Min Length | Complexity Required |
-| :--- | :--- | :--- |
-| NIST SP 800-63B | 8 | None |
-| HIPAA / SOC 2 / SOX / ISO 27001 | 8 | Upper, lower, number, special |
-| FedRAMP | 12 | Upper, lower, number, special |
-| PCI DSS v4.0 | 12 | Upper, lower, number, special |
 
 ---
 
