@@ -152,10 +152,10 @@ assess_password_compliance_and_breaches() {
             hash_suffix=$(printf '%s' "$hashed_password_checker_input" | awk '{print substr($0, 6)}')
 
             printf '%b\n' "${BLUE}\nChecking for known data breaches:${NC}\n"
-            if [[ -z $haveibeenpwned_response ]]; then
+            if [[ -z $haveibeenpwned_response || -z $hash_suffix ]]; then
                 printf '%b\n' "${YELLOW}Breach check unavailable. Check for network error or timeout.${NC}"
                 printf '%b\n' ""
-            elif printf '%s' "$haveibeenpwned_response" | grep -i "$hash_suffix" > /dev/null; then
+            elif printf '%s' "$haveibeenpwned_response" | grep -iq "^${hash_suffix}:"; then
                 printf '%b\n' "${RED}This password has been found in a known data breach!${NC}"
                 printf '%b\n' ""
             else
